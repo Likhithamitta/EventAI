@@ -1,0 +1,182 @@
+{% extends "layout.html" %}
+{% block title %}Dashboard — AI Event Planner{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block head %}
+<style>
+  .action-card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:1.5rem;
+    text-decoration:none;color:var(--text);display:block;
+    transition:border-color .15s,background .15s;
+  }
+  .action-card:hover{border-color:var(--accent);background:var(--hover);color:var(--text);}
+  .ac-icon{
+    width:44px;height:44px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.1rem;margin-bottom:.85rem;
+  }
+  .action-card h6{font-weight:600;font-size:.9rem;margin-bottom:.2rem;}
+  .action-card p {font-size:.78rem;color:var(--muted);margin:0;}
+
+  .info-card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:1.5rem 1.75rem;
+  }
+  .info-row{
+    display:flex;align-items:flex-start;gap:.85rem;
+    padding:.6rem 0;border-bottom:1px solid var(--hover);
+  }
+  .info-row:last-child{border-bottom:none;}
+  .info-num{
+    width:26px;height:26px;border-radius:6px;flex-shrink:0;
+    background:rgba(124,92,216,.18);color:#bc8cff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:.75rem;font-weight:700;margin-top:1px;
+  }
+  .stat-strip{
+    display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;
+  }
+  .stat-chip{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:8px;padding:.75rem 1.25rem;
+    display:flex;align-items:center;gap:.6rem;flex:1;min-width:160px;
+  }
+  .stat-chip .chip-icon{
+    width:36px;height:36px;border-radius:8px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:.9rem;
+  }
+  .stat-chip .chip-label{font-size:.75rem;color:var(--muted);}
+  .stat-chip .chip-val{font-size:1.1rem;font-weight:700;color:var(--text);}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">
+      Welcome, {{ session.get('full_name', session.get('username','')) }} 👋
+    </h4>
+    <p class="text-muted-custom mb-0" style="font-size:.85rem;">
+      Your AI-powered event planning workspace is ready.
+    </p>
+  </div>
+  <a href="{{ url_for('planner') }}" class="btn btn-primary btn-sm px-3">
+    <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Plan an Event
+  </a>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-lg-3">
+    <a href="{{ url_for('planner') }}" class="action-card">
+      <div class="ac-icon" style="background:rgba(124,92,216,.18);color:#bc8cff;">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+      </div>
+      <h6>Plan an Event</h6>
+      <p>Generate a full AI-powered event plan with IBM watsonx.ai.</p>
+    </a>
+  </div>
+  <div class="col-12 col-sm-6 col-lg-3">
+    <a href="{{ url_for('analytics') }}" class="action-card">
+      <div class="ac-icon" style="background:rgba(59,130,212,.18);color:#58a6ff;">
+        <i class="fa-solid fa-chart-bar"></i>
+      </div>
+      <h6>Analytics</h6>
+      <p>View event insights and charts for this session.</p>
+    </a>
+  </div>
+  <div class="col-12 col-sm-6 col-lg-3">
+    <a href="{{ url_for('history') }}" class="action-card">
+      <div class="ac-icon" style="background:rgba(35,197,94,.18);color:#3fb950;">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+      </div>
+      <h6>History</h6>
+      <p>Browse event plans generated this session.</p>
+    </a>
+  </div>
+  <div class="col-12 col-sm-6 col-lg-3">
+    <a href="{{ url_for('settings') }}" class="action-card">
+      <div class="ac-icon" style="background:rgba(210,153,34,.18);color:#d29922;">
+        <i class="fa-solid fa-gear"></i>
+      </div>
+      <h6>Settings</h6>
+      <p>Configure IBM watsonx.ai credentials and preferences.</p>
+    </a>
+  </div>
+</div>
+
+<!-- How it works + Watsonx info -->
+<div class="row g-3">
+  <div class="col-12 col-lg-7">
+    <div class="info-card">
+      <h6 class="fw-semibold mb-3" style="font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">
+        <i class="fa-solid fa-circle-play me-2 text-accent"></i>How to Get Started
+      </h6>
+      <div class="info-row">
+        <div class="info-num">1</div>
+        <div>
+          <div style="font-size:.875rem;font-weight:500;">Click <strong>Plan an Event</strong></div>
+          <div style="font-size:.76rem;color:var(--muted);">Go to the Plan Event page from the sidebar or button above.</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-num">2</div>
+        <div>
+          <div style="font-size:.875rem;font-weight:500;">Fill in your event details</div>
+          <div style="font-size:.76rem;color:var(--muted);">Enter event type, date, location, budget, guests, and theme.</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-num">3</div>
+        <div>
+          <div style="font-size:.875rem;font-weight:500;">Generate with IBM watsonx.ai</div>
+          <div style="font-size:.76rem;color:var(--muted);">Llama 3.3 70B Instruct crafts a detailed 8-section event plan.</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-num">4</div>
+        <div>
+          <div style="font-size:.875rem;font-weight:500;">Copy or Download your plan</div>
+          <div style="font-size:.76rem;color:var(--muted);">Use the Copy or Download PDF buttons on the results page.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-5">
+    <div class="info-card mb-3">
+      <h6 class="fw-semibold mb-2" style="font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">
+        <i class="fa-solid fa-robot me-2 text-purple"></i>AI Backend
+      </h6>
+      <div style="font-size:.84rem;line-height:1.8;color:var(--text2);">
+        <div><span style="color:var(--muted);">Provider</span>
+          &nbsp;<strong style="color:var(--accent);">IBM watsonx.ai</strong></div>
+        <div><span style="color:var(--muted);">Model</span>
+          &nbsp;<span style="color:#bc8cff;">Llama 3.3 70B Instruct</span></div>
+        <div><span style="color:var(--muted);">Output</span>
+          &nbsp;8-section structured event plan</div>
+        <div><span style="color:var(--muted);">Session</span>
+          &nbsp;Logged in as <strong>{{ session.get('username','') }}</strong></div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <h6 class="fw-semibold mb-2" style="font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">
+        <i class="fa-solid fa-file-lines me-2 text-accent"></i>Plan Sections Generated
+      </h6>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.35rem .75rem;font-size:.8rem;color:var(--text2);">
+        <div><i class="fa-solid fa-check text-accent me-1" style="font-size:.65rem;"></i>Event Summary</div>
+        <div><i class="fa-solid fa-check text-accent me-1" style="font-size:.65rem;"></i>Venue</div>
+        <div><i class="fa-solid fa-check text-accent me-1" style="font-size:.65rem;"></i>Catering</div>
+        <div><i class="fa-solid fa-check text-accent me-1" style="font-size:.65rem;"></i>Decorations</div>
+        <div><i class="fa-solid fa-check text-accent me-1" style="font-size:.65rem;"></i>Entertainment</div>
+        <div><i class="fa-solid fa-check text-accent me-1" style="font-size:.65rem;"></i>Budget Breakdown</div>
+        <div><i class="fa-solid fa-check text-accent me-1" style="font-size:.65rem;"></i>Timeline</div>
+        <div><i class="fa-solid fa-check text-accent me-1" style="font-size:.65rem;"></i>Checklist</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

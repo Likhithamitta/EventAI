@@ -1,0 +1,11 @@
+# AI Event Planner — Python dependencies
+# Install with:  pip install -r requirements.txt
+
+# Web framework
+flask>=3.0.0
+
+# Loads .env file into environment variables
+python-dotenv>=1.0.0
+
+# IBM watsonx.ai Python SDK
+ibm-watsonx-ai>=1.0.0

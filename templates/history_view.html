@@ -1,0 +1,141 @@
+{% extends "layout.html" %}
+{% block title %}{{ event.event_type }} — AI Event Planner{% endblock %}
+{% block page_title %}View Event Plan{% endblock %}
+
+{% block head %}
+<style>
+  .meta-chip{
+    display:inline-flex;align-items:center;gap:.4rem;
+    background:var(--hover);border:1px solid var(--border);
+    border-radius:6px;padding:.3rem .75rem;font-size:.78rem;color:var(--text2);
+  }
+  .plan-pre{
+    background:var(--input-bg);border:1px solid var(--hover);
+    border-radius:8px;color:var(--text2);
+    font-family:'Inter','Consolas',monospace;font-size:.84rem;
+    line-height:1.75;padding:1.5rem;white-space:pre-wrap;
+    word-break:break-word;max-height:620px;overflow-y:auto;
+  }
+  .btn-action{
+    display:inline-flex;align-items:center;gap:.4rem;
+    font-size:.8rem;font-weight:500;border-radius:7px;
+    padding:.42rem .9rem;cursor:pointer;border:1px solid var(--border);
+    background:var(--hover);color:var(--muted);transition:all .15s;
+    text-decoration:none;
+  }
+  .btn-action:hover{color:var(--text);border-color:var(--accent);}
+  .btn-action.primary{background:#1f2d45;color:#58a6ff;border-color:#30363d;}
+  .btn-action.primary:hover{background:#243650;}
+  .copy-success{color:#3fb950 !important;border-color:#3fb950 !important;}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="mb-3" style="font-size:.8rem;color:var(--muted);">
+  <a href="{{ url_for('history') }}" style="color:var(--accent);">
+    <i class="fa-solid fa-arrow-left me-1"></i>Back to History
+  </a>
+</div>
+
+<!-- Header -->
+<div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-bold mb-1">{{ event.event_type }}</h4>
+    <div class="d-flex flex-wrap gap-2">
+      <span class="meta-chip"><i class="fa-solid fa-location-dot text-purple"></i>{{ event.location }}</span>
+      <span class="meta-chip"><i class="fa-solid fa-calendar text-accent"></i>{{ event.date }}</span>
+      <span class="meta-chip"><i class="fa-solid fa-users text-accent"></i>{{ event.guests }} guests</span>
+      <span class="meta-chip"><i class="fa-solid fa-dollar-sign text-purple"></i>${{ "{:,.0f}".format(event.budget) }}</span>
+      <span class="meta-chip"><i class="fa-solid fa-palette text-accent"></i>{{ event.theme }}</span>
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <button class="btn-action primary" id="copy-btn">
+      <i class="fa-solid fa-copy"></i> Copy Plan
+    </button>
+    <button class="btn-action" id="pdf-btn">
+      <i class="fa-solid fa-file-pdf"></i> Download PDF
+    </button>
+    <form method="POST" action="{{ url_for('history_delete', event_id=event.id) }}"
+          onsubmit="return confirm('Delete this event plan?');"
+          style="display:inline;">
+      <button type="submit" class="btn-action" style="color:#f85149;border-color:rgba(248,81,73,.3);">
+        <i class="fa-solid fa-trash-can"></i> Delete
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Created-at note -->
+<div class="mb-3" style="font-size:.76rem;color:var(--muted);">
+  <i class="fa-solid fa-clock me-1"></i>Generated on {{ event.created_at }}
+  &nbsp;·&nbsp;
+  <span style="color:#bc8cff;">IBM watsonx.ai · Llama 3.3 70B Instruct</span>
+</div>
+
+<!-- Plan text -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;">
+  <div style="display:flex;align-items:center;gap:.65rem;padding-bottom:1rem;
+              margin-bottom:1.25rem;border-bottom:1px solid var(--border);">
+    <div style="width:36px;height:36px;border-radius:8px;flex-shrink:0;
+                background:rgba(124,92,216,.18);color:#bc8cff;
+                display:flex;align-items:center;justify-content:center;font-size:.95rem;">
+      <i class="fa-solid fa-file-lines"></i>
+    </div>
+    <div>
+      <div style="font-weight:600;font-size:.95rem;">Event Plan</div>
+      <div style="font-size:.74rem;color:var(--muted);">8-section structured plan</div>
+    </div>
+    <span class="ms-auto" style="background:rgba(35,197,94,.15);color:#3fb950;font-size:.72rem;
+          font-weight:600;border-radius:5px;padding:4px 10px;">
+      <i class="fa-solid fa-check-circle me-1"></i>Complete
+    </span>
+  </div>
+  <pre class="plan-pre" id="plan-text">{{ event.plan }}</pre>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Copy to clipboard
+  document.getElementById('copy-btn').addEventListener('click', () => {
+    const btn = document.getElementById('copy-btn');
+    const txt = document.getElementById('plan-text').innerText;
+    navigator.clipboard.writeText(txt).then(() => {
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+      btn.classList.add('copy-success');
+      setTimeout(() => {
+        btn.innerHTML = '<i class="fa-solid fa-copy"></i> Copy Plan';
+        btn.classList.remove('copy-success');
+      }, 2000);
+    });
+  });
+
+  // PDF download via print dialog
+  document.getElementById('pdf-btn').addEventListener('click', () => {
+    const txt  = document.getElementById('plan-text').innerText;
+    const meta = `{{ event.event_type }} · {{ event.date }} · {{ event.location }}`;
+    const w    = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html><head>
+      <title>Event Plan — {{ event.event_type }}</title>
+      <style>
+        body{font-family:Arial,sans-serif;padding:2rem;line-height:1.7;
+             color:#1f2328;max-width:800px;margin:0 auto;}
+        pre{white-space:pre-wrap;word-break:break-word;
+            font-family:inherit;font-size:.9rem;}
+        h2{border-bottom:2px solid #0969da;padding-bottom:.5rem;color:#0969da;}
+        .meta{font-size:.82rem;color:#57606a;margin-bottom:1.5rem;}
+      </style></head><body>
+      <h2>AI Event Plan — {{ event.event_type }}</h2>
+      <div class="meta">${meta.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <pre>${txt.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+      <p style="color:#888;font-size:.75rem;margin-top:2rem;">
+        Generated by AI Event Planner · IBM watsonx.ai · Llama 3.3 70B
+      </p></body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 300);
+  });
+</script>
+{% endblock %}

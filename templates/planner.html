@@ -1,0 +1,270 @@
+{% extends "layout.html" %}
+{% block title %}Plan Event — AI Event Planner{% endblock %}
+{% block page_title %}Plan an Event{% endblock %}
+
+{% block head %}
+<style>
+  .form-card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:12px;padding:2rem;
+  }
+  .form-card label{font-size:.825rem;font-weight:500;color:var(--text2);margin-bottom:.35rem;}
+  .form-card .form-control{
+    background:var(--input-bg);border:1px solid var(--border);
+    color:var(--text);border-radius:7px;font-size:.875rem;padding:.55rem .85rem;
+    transition:border-color .15s;
+  }
+  .form-card .form-control:focus{
+    background:var(--input-bg);border-color:var(--accent);
+    color:var(--text);box-shadow:0 0 0 3px rgba(88,166,255,.12);
+  }
+  .form-card .form-control::placeholder{color:var(--muted);opacity:.7;}
+  .btn-generate{
+    background:linear-gradient(135deg,#7c5cd8,#3b82d4);
+    border:none;color:#fff;font-weight:600;font-size:.9rem;
+    padding:.65rem 2rem;border-radius:8px;transition:opacity .15s;
+  }
+  .btn-generate:hover{opacity:.88;color:#fff;}
+  .btn-generate:disabled{opacity:.5;cursor:not-allowed;}
+
+  /* Plan output */
+  .plan-output{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:12px;padding:2rem;margin-top:2rem;
+  }
+  .plan-header{
+    display:flex;align-items:center;gap:.75rem;
+    border-bottom:1px solid var(--border);
+    padding-bottom:1rem;margin-bottom:1.25rem;
+  }
+  .plan-icon{
+    width:38px;height:38px;border-radius:8px;
+    background:rgba(124,92,216,.18);color:#bc8cff;
+    display:flex;align-items:center;justify-content:center;font-size:1rem;
+  }
+  .plan-pre{
+    background:var(--input-bg);border:1px solid var(--hover);
+    border-radius:8px;color:var(--text2);
+    font-family:'Inter','Consolas',monospace;font-size:.84rem;
+    line-height:1.75;padding:1.5rem;white-space:pre-wrap;
+    word-break:break-word;max-height:580px;overflow-y:auto;
+  }
+
+  /* Loading overlay */
+  #loading-overlay{
+    display:none;position:fixed;inset:0;
+    background:rgba(13,17,23,.8);z-index:9999;
+    align-items:center;justify-content:center;
+    flex-direction:column;gap:1rem;
+    color:#e6edf3;font-size:.9rem;
+  }
+  #loading-overlay.active{display:flex;}
+  .spinner-ring{
+    width:48px;height:48px;border-radius:50%;
+    border:3px solid rgba(88,166,255,.2);
+    border-top-color:#58a6ff;
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-steps{
+    font-size:.78rem;color:#8b949e;text-align:center;
+    max-width:260px;line-height:1.8;
+  }
+  .loading-steps .step.active{color:#58a6ff;}
+
+  /* Action buttons */
+  .plan-actions{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem;}
+  .btn-action{
+    display:inline-flex;align-items:center;gap:.4rem;
+    font-size:.8rem;font-weight:500;border-radius:7px;
+    padding:.42rem .9rem;cursor:pointer;border:1px solid var(--border);
+    background:var(--hover);color:var(--muted);transition:all .15s;
+    text-decoration:none;
+  }
+  .btn-action:hover{color:var(--text);border-color:var(--accent);}
+  .btn-action.primary{background:#1f2d45;color:#58a6ff;border-color:#30363d;}
+  .btn-action.primary:hover{background:#243650;}
+  .copy-success{color:#3fb950 !important;border-color:#3fb950 !important;}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner-ring"></div>
+  <div style="font-weight:600;font-size:.95rem;">Generating your event plan…</div>
+  <div class="loading-steps">
+    <div class="step active" id="step1">⟳ Connecting to IBM watsonx.ai</div>
+    <div class="step" id="step2">⟳ Processing with Llama 3.3 70B</div>
+    <div class="step" id="step3">⟳ Structuring your event plan</div>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="mb-4">
+  <h4 class="fw-bold mb-0">Plan an Event</h4>
+  <p class="text-muted-custom mb-0" style="font-size:.85rem;">
+    Fill in the details and let <span class="text-accent">IBM watsonx.ai</span> craft your complete event plan.
+  </p>
+</div>
+
+<!-- Form -->
+<div class="form-card">
+  <h6 class="fw-semibold mb-3" style="font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">
+    <i class="fa-solid fa-pen-to-square me-2"></i>Event Details
+  </h6>
+  <form method="POST" action="{{ url_for('planner') }}" id="planner-form">
+    <div class="row g-3">
+      <div class="col-12 col-md-6">
+        <label><i class="fa-solid fa-star me-1 text-purple"></i> Event Type</label>
+        <input type="text" name="event_type" class="form-control"
+               placeholder="e.g. Birthday Party, Wedding, Corporate Gala"
+               value="{{ form_data.get('event_type','') }}" required/>
+      </div>
+      <div class="col-12 col-md-6">
+        <label><i class="fa-solid fa-calendar-day me-1 text-accent"></i> Event Date</label>
+        <input type="date" name="date" class="form-control"
+               value="{{ form_data.get('date','') }}" required/>
+      </div>
+      <div class="col-12 col-md-6">
+        <label><i class="fa-solid fa-location-dot me-1 text-purple"></i> Location</label>
+        <input type="text" name="location" class="form-control"
+               placeholder="e.g. New York, NY"
+               value="{{ form_data.get('location','') }}" required/>
+      </div>
+      <div class="col-12 col-md-6">
+        <label><i class="fa-solid fa-dollar-sign me-1 text-accent"></i> Total Budget ($)</label>
+        <input type="number" name="budget" class="form-control"
+               placeholder="e.g. 5000" min="0"
+               value="{{ form_data.get('budget','') }}" required/>
+      </div>
+      <div class="col-12 col-md-6">
+        <label><i class="fa-solid fa-users me-1 text-purple"></i> Number of Guests</label>
+        <input type="number" name="guests" class="form-control"
+               placeholder="e.g. 50" min="1"
+               value="{{ form_data.get('guests','') }}" required/>
+      </div>
+      <div class="col-12 col-md-6">
+        <label><i class="fa-solid fa-palette me-1 text-accent"></i> Theme</label>
+        <input type="text" name="theme" class="form-control"
+               placeholder="e.g. Tropical, Black &amp; Gold, Rustic"
+               value="{{ form_data.get('theme','') }}" required/>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-3 mt-4">
+      <button type="submit" class="btn btn-generate" id="submit-btn">
+        <i class="fa-solid fa-wand-magic-sparkles me-2"></i>Generate Event Plan
+      </button>
+      <button type="reset" class="btn-action">
+        <i class="fa-solid fa-rotate-left"></i> Reset
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Plan output -->
+{% if plan %}
+<div class="plan-output" id="plan-section">
+  <div class="plan-header">
+    <div class="plan-icon"><i class="fa-solid fa-file-lines"></i></div>
+    <div>
+      <div style="font-weight:600;font-size:.95rem;">Your Generated Event Plan</div>
+      <div style="font-size:.74rem;color:var(--muted);">
+        IBM watsonx.ai · Llama 3.3 70B Instruct
+      </div>
+    </div>
+    {% if not plan.startswith('⚠') %}
+    <span class="badge ms-auto"
+          style="background:rgba(35,197,94,.15);color:#3fb950;font-size:.72rem;
+                 font-weight:600;border-radius:5px;padding:4px 10px;">
+      <i class="fa-solid fa-check-circle me-1"></i>Complete
+    </span>
+    {% endif %}
+  </div>
+
+  <pre class="plan-pre" id="plan-text">{{ plan }}</pre>
+
+  {% if not plan.startswith('⚠') %}
+  <div class="plan-actions">
+    <button class="btn-action primary" id="copy-btn">
+      <i class="fa-solid fa-copy"></i> Copy Plan
+    </button>
+    <button class="btn-action" id="pdf-btn">
+      <i class="fa-solid fa-file-pdf"></i> Download PDF
+    </button>
+    <a href="{{ url_for('planner') }}" class="btn-action">
+      <i class="fa-solid fa-plus"></i> New Plan
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Loading overlay with animated steps
+  document.getElementById('planner-form').addEventListener('submit', () => {
+    document.getElementById('loading-overlay').classList.add('active');
+    document.getElementById('submit-btn').disabled = true;
+    const steps = ['step1','step2','step3'];
+    let i = 1;
+    const iv = setInterval(() => {
+      if (i < steps.length) {
+        document.getElementById(steps[i]).classList.add('active');
+        i++;
+      } else clearInterval(iv);
+    }, 2200);
+  });
+
+  // Copy to clipboard
+  const copyBtn = document.getElementById('copy-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      const txt = document.getElementById('plan-text').innerText;
+      navigator.clipboard.writeText(txt).then(() => {
+        copyBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+        copyBtn.classList.add('copy-success');
+        setTimeout(() => {
+          copyBtn.innerHTML = '<i class="fa-solid fa-copy"></i> Copy Plan';
+          copyBtn.classList.remove('copy-success');
+        }, 2000);
+      });
+    });
+  }
+
+  // PDF download via print dialog
+  const pdfBtn = document.getElementById('pdf-btn');
+  if (pdfBtn) {
+    pdfBtn.addEventListener('click', () => {
+      const txt = document.getElementById('plan-text').innerText;
+      const w = window.open('', '_blank');
+      w.document.write(`<!DOCTYPE html><html><head>
+        <title>Event Plan</title>
+        <style>
+          body{font-family:Arial,sans-serif;padding:2rem;line-height:1.7;
+               color:#1f2328;max-width:800px;margin:0 auto;}
+          pre{white-space:pre-wrap;word-break:break-word;
+              font-family:inherit;font-size:.9rem;}
+          h2{border-bottom:2px solid #0969da;padding-bottom:.5rem;color:#0969da;}
+        </style></head><body>
+        <h2>AI Event Plan — Generated by IBM watsonx.ai</h2>
+        <pre>${txt.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+        <p style="color:#888;font-size:.75rem;margin-top:2rem;">
+          Generated by AI Event Planner · IBM watsonx.ai · Llama 3.3 70B
+        </p></body></html>`);
+      w.document.close();
+      w.focus();
+      setTimeout(() => w.print(), 300);
+    });
+  }
+
+  // Auto-scroll to plan on load
+  {% if plan %}
+  window.addEventListener('load', () => {
+    const el = document.getElementById('plan-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  {% endif %}
+</script>
+{% endblock %}

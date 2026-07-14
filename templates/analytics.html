@@ -1,0 +1,344 @@
+{% extends "layout.html" %}
+{% block title %}Analytics — AI Event Planner{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+
+{% block head %}
+<style>
+  .stat-chip{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:1.1rem 1.4rem;
+    display:flex;flex-direction:column;gap:.25rem;
+  }
+  .chip-label{font-size:.73rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.06em;}
+  .chip-val  {font-size:1.5rem;font-weight:700;color:var(--text);}
+  .chip-sub  {font-size:.75rem;color:var(--muted);}
+
+  .chart-card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:1.5rem;
+  }
+  .chart-title{
+    font-size:.8rem;font-weight:600;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.06em;margin-bottom:1.1rem;
+  }
+
+  /* Recent plans table */
+  .plan-table{width:100%;border-collapse:collapse;font-size:.83rem;}
+  .plan-table th{
+    font-size:.72rem;font-weight:600;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.06em;
+    padding:.55rem .75rem;border-bottom:1px solid var(--border);text-align:left;
+  }
+  .plan-table td{
+    padding:.6rem .75rem;border-bottom:1px solid var(--hover);
+    color:var(--text2);vertical-align:middle;
+  }
+  .plan-table tr:last-child td{border-bottom:none;}
+  .plan-table tr:hover td{background:var(--hover);}
+
+  /* Empty state */
+  .info-banner{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:3rem 2rem;text-align:center;
+  }
+  .info-banner .banner-icon{
+    font-size:3rem;color:var(--muted);opacity:.3;margin-bottom:1rem;
+  }
+  .info-banner h5{font-weight:600;margin-bottom:.5rem;}
+  .info-banner p{font-size:.875rem;color:var(--muted);max-width:380px;margin:0 auto .25rem;}
+
+  .tip-card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:1.25rem 1.5rem;
+  }
+  .tip-row{
+    display:flex;align-items:flex-start;gap:.75rem;
+    padding:.6rem 0;border-bottom:1px solid var(--hover);font-size:.84rem;
+  }
+  .tip-row:last-child{border-bottom:none;}
+  .tip-row i{color:var(--accent);margin-top:2px;flex-shrink:0;}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">Analytics</h4>
+    <p class="text-muted-custom mb-0" style="font-size:.85rem;">
+      Insights from your AI-generated event plans · {{ current_year }}
+    </p>
+  </div>
+  <a href="{{ url_for('planner') }}" class="btn btn-primary btn-sm px-3">
+    <i class="fa-solid fa-plus me-1"></i> New Event
+  </a>
+</div>
+
+{% if totals.total > 0 %}
+
+<!-- ── Stats row ── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="stat-chip">
+      <div class="chip-label"><i class="fa-solid fa-calendar-check me-1"></i>Total Events</div>
+      <div class="chip-val">{{ totals.total }}</div>
+      <div class="chip-sub">plans generated</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-chip">
+      <div class="chip-label"><i class="fa-solid fa-dollar-sign me-1"></i>Total Budget</div>
+      <div class="chip-val">${{ "{:,.0f}".format(totals.total_budget) }}</div>
+      <div class="chip-sub">across all events</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-chip">
+      <div class="chip-label"><i class="fa-solid fa-users me-1"></i>Avg Guests</div>
+      <div class="chip-val">{{ "{:.0f}".format(totals.avg_guests) }}</div>
+      <div class="chip-sub">per event</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-chip">
+      <div class="chip-label"><i class="fa-solid fa-star me-1"></i>Event Types</div>
+      <div class="chip-val">{{ by_type|length }}</div>
+      <div class="chip-sub">unique categories</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts row ── -->
+<div class="row g-3 mb-4">
+  <!-- Monthly bar chart -->
+  <div class="col-12 col-lg-7">
+    <div class="chart-card">
+      <div class="chart-title">
+        <i class="fa-solid fa-chart-bar me-2 text-accent"></i>Events Per Month — {{ current_year }}
+      </div>
+      <canvas id="monthlyChart" height="220"></canvas>
+    </div>
+  </div>
+  <!-- Type doughnut -->
+  <div class="col-12 col-lg-5">
+    <div class="chart-card">
+      <div class="chart-title">
+        <i class="fa-solid fa-chart-pie me-2 text-purple"></i>Event Type Breakdown
+      </div>
+      <canvas id="typeChart" height="220"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ── Recent plans table ── -->
+<div class="chart-card">
+  <div class="chart-title">
+    <i class="fa-solid fa-clock-rotate-left me-2 text-accent"></i>5 Most Recent Plans
+  </div>
+  <table class="plan-table">
+    <thead>
+      <tr>
+        <th>Event Type</th>
+        <th>Date</th>
+        <th>Location</th>
+        <th>Budget</th>
+        <th>Guests</th>
+        <th>Theme</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ev in recent %}
+      <tr>
+        <td><strong>{{ ev.event_type }}</strong></td>
+        <td>{{ ev.date }}</td>
+        <td>{{ ev.location }}</td>
+        <td>${{ "{:,.0f}".format(ev.budget) }}</td>
+        <td>{{ ev.guests }}</td>
+        <td><span style="background:rgba(124,92,216,.14);color:#bc8cff;
+                         border-radius:4px;padding:1px 7px;font-size:.75rem;">
+          {{ ev.theme }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% else %}
+
+<!-- ── Empty state ── -->
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="info-banner">
+      <div class="banner-icon"><i class="fa-solid fa-chart-bar"></i></div>
+      <h5>No analytics data yet</h5>
+      <p>
+        Analytics are generated from your event plans.
+        Generate a plan using IBM watsonx.ai and your data will appear here.
+      </p>
+      <a href="{{ url_for('planner') }}" class="btn btn-primary btn-sm mt-3 px-4">
+        <i class="fa-solid fa-wand-magic-sparkles me-2"></i>Generate Your First Plan
+      </a>
+
+      <div class="mt-4 pt-3" style="border-top:1px solid var(--border);">
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">
+          Charts that will appear after planning
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;">
+          <span style="background:rgba(59,130,212,.12);color:#58a6ff;border-radius:5px;padding:3px 10px;font-size:.78rem;">
+            <i class="fa-solid fa-chart-bar me-1"></i>Events per Month
+          </span>
+          <span style="background:rgba(124,92,216,.12);color:#bc8cff;border-radius:5px;padding:3px 10px;font-size:.78rem;">
+            <i class="fa-solid fa-chart-pie me-1"></i>Event Types
+          </span>
+          <span style="background:rgba(210,153,34,.12);color:#d29922;border-radius:5px;padding:3px 10px;font-size:.78rem;">
+            <i class="fa-solid fa-dollar-sign me-1"></i>Budget Distribution
+          </span>
+          <span style="background:rgba(35,197,94,.12);color:#3fb950;border-radius:5px;padding:3px 10px;font-size:.78rem;">
+            <i class="fa-solid fa-users me-1"></i>Average Guests
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-4">
+    <div class="tip-card">
+      <div style="font-size:.8rem;font-weight:600;color:var(--muted);
+                  text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem;">
+        <i class="fa-solid fa-lightbulb me-2 text-accent"></i>Planning Tips
+      </div>
+      <div class="tip-row">
+        <i class="fa-solid fa-circle-check"></i>
+        <div>Set a realistic budget — include a 10–15% contingency buffer.</div>
+      </div>
+      <div class="tip-row">
+        <i class="fa-solid fa-circle-check"></i>
+        <div>Book venues at least 3–6 months in advance for popular dates.</div>
+      </div>
+      <div class="tip-row">
+        <i class="fa-solid fa-circle-check"></i>
+        <div>Specify a theme clearly — it helps the AI give targeted vendor suggestions.</div>
+      </div>
+      <div class="tip-row">
+        <i class="fa-solid fa-circle-check"></i>
+        <div>Use the generated checklist to track action items before the event.</div>
+      </div>
+      <div class="tip-row">
+        <i class="fa-solid fa-circle-check"></i>
+        <div>Download the PDF version to share with your team or clients.</div>
+      </div>
+    </div>
+
+    <div class="tip-card mt-3">
+      <div style="font-size:.8rem;font-weight:600;color:var(--muted);
+                  text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem;">
+        <i class="fa-solid fa-robot me-2 text-purple"></i>Powered By
+      </div>
+      <div style="font-size:.84rem;line-height:1.9;color:var(--text2);">
+        <div><span style="color:var(--muted);">Model</span>
+          &nbsp;<span style="color:#bc8cff;">Llama 3.3 70B Instruct</span></div>
+        <div><span style="color:var(--muted);">Platform</span>
+          &nbsp;<span style="color:var(--accent);">IBM watsonx.ai</span></div>
+        <div><span style="color:var(--muted);">Output</span>
+          &nbsp;8-section structured plan</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if totals.total > 0 %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const isDark = () => !document.getElementById("html-root").hasAttribute("data-theme");
+
+const gridColor = () => isDark() ? "rgba(255,255,255,.07)" : "rgba(0,0,0,.07)";
+const labelColor = () => isDark() ? "#8b949e" : "#57606a";
+
+// ---------- Monthly Chart ----------
+const monthlyCtx = document.getElementById("monthlyChart").getContext("2d");
+
+new Chart(monthlyCtx,{
+    type:"bar",
+    data:{
+        labels: {{ months_labels |safe }},
+        datasets:[{
+            label:"Events",
+            data: {{ months_data |safe }},
+            backgroundColor:"rgba(59,130,212,.65)",
+            borderColor:"#3b82d4",
+            borderWidth:1,
+            borderRadius:5
+        }]
+    },
+    options:{
+        responsive:true,
+        plugins:{
+            legend:{display:false}
+        },
+        scales:{
+            x:{
+                ticks:{color:labelColor()},
+                grid:{color:gridColor()}
+            },
+            y:{
+                beginAtZero:true,
+                ticks:{color:labelColor()},
+                grid:{color:gridColor()}
+            }
+        }
+    }
+});
+
+// ---------- Doughnut Chart ----------
+const typeCtx = document.getElementById("typeChart").getContext("2d");
+
+const palette=[
+"#58a6ff",
+"#bc8cff",
+"#3fb950",
+"#d29922",
+"#f85149",
+"#79c0ff",
+"#a5d6ff"
+];
+
+const typeBudgets = {{ type_budgets | safe }};
+
+new Chart(typeCtx,{
+    type:"doughnut",
+    data:{
+        labels: {{ type_labels |safe}},
+        datasets:[{
+            data: {{ type_counts |safe }},
+            backgroundColor:palette,
+            borderWidth:2,
+            borderColor:isDark() ? "#161b22" : "#ffffff"
+        }]
+    },
+    options:{
+        responsive:true,
+        plugins:{
+            legend:{
+                position:"bottom",
+                labels:{
+                    color:labelColor()
+                }
+            },
+            tooltip:{
+                callbacks:{
+                    label:function(context){
+                        return context.label + ": " +
+                               context.parsed +
+                               " event(s) • Budget: $" +
+                               Number(typeBudgets[context.dataIndex]).toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

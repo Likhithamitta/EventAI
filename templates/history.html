@@ -1,0 +1,138 @@
+{% extends "layout.html" %}
+{% block title %}History — AI Event Planner{% endblock %}
+{% block page_title %}Event History{% endblock %}
+
+{% block head %}
+<style>
+  .empty-wrap{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:4rem 2rem;text-align:center;
+  }
+  .empty-wrap .empty-icon{
+    font-size:3rem;color:var(--muted);opacity:.25;margin-bottom:1rem;
+  }
+  .empty-wrap h5{font-weight:600;margin-bottom:.5rem;}
+  .empty-wrap p{font-size:.875rem;color:var(--muted);max-width:360px;margin:0 auto;}
+
+  .event-row{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:1rem 1.25rem;
+    display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+    transition:border-color .15s;
+  }
+  .event-row:hover{border-color:var(--accent);}
+  .event-row .ev-icon{
+    width:40px;height:40px;border-radius:9px;flex-shrink:0;
+    background:rgba(124,92,216,.18);color:#bc8cff;
+    display:flex;align-items:center;justify-content:center;font-size:.95rem;
+  }
+  .event-row .ev-title{font-weight:600;font-size:.9rem;color:var(--text);}
+  .event-row .ev-meta{font-size:.76rem;color:var(--muted);margin-top:2px;}
+  .ev-badge{
+    font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:4px;
+    background:rgba(59,130,212,.14);color:#58a6ff;
+  }
+  .search-bar{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:8px;padding:.5rem 1rem;
+    display:flex;align-items:center;gap:.6rem;max-width:360px;
+  }
+  .search-bar input{
+    background:transparent;border:none;outline:none;
+    color:var(--text);font-size:.875rem;width:100%;
+  }
+  .search-bar input::placeholder{color:var(--muted);}
+  .btn-del{
+    background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.25);
+    color:#f85149;border-radius:6px;padding:.3rem .7rem;font-size:.75rem;
+    font-weight:500;cursor:pointer;transition:background .15s;
+  }
+  .btn-del:hover{background:rgba(248,81,73,.22);}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">Event History</h4>
+    <p class="text-muted-custom mb-0" style="font-size:.85rem;">
+      All event plans you have generated.
+    </p>
+  </div>
+  <a href="{{ url_for('planner') }}" class="btn btn-primary btn-sm px-3">
+    <i class="fa-solid fa-plus me-1"></i> New Plan
+  </a>
+</div>
+
+<!-- Search -->
+<form method="GET" action="{{ url_for('history') }}" class="mb-4">
+  <div class="search-bar">
+    <i class="fa-solid fa-magnifying-glass" style="color:var(--muted);font-size:.8rem;"></i>
+    <input type="text" name="q" placeholder="Search by type, location, or theme…"
+           value="{{ q }}" autocomplete="off"/>
+    {% if q %}
+    <a href="{{ url_for('history') }}" style="color:var(--muted);font-size:.8rem;">
+      <i class="fa-solid fa-xmark"></i>
+    </a>
+    {% endif %}
+    <button type="submit" style="background:none;border:none;color:var(--accent);
+            font-size:.8rem;cursor:pointer;padding:0;">Search</button>
+  </div>
+</form>
+
+{% if events %}
+<div class="d-flex flex-column gap-2">
+  {% for ev in events %}
+  <div class="event-row">
+    <div class="ev-icon"><i class="fa-solid fa-calendar-check"></i></div>
+    <div style="flex:1;min-width:0;">
+      <div class="ev-title">{{ ev.event_type }}</div>
+      <div class="ev-meta">
+        <i class="fa-solid fa-location-dot me-1"></i>{{ ev.location }}
+        &nbsp;·&nbsp;
+        <i class="fa-solid fa-calendar me-1"></i>{{ ev.date }}
+        &nbsp;·&nbsp;
+        <i class="fa-solid fa-users me-1"></i>{{ ev.guests }} guests
+        &nbsp;·&nbsp;
+        <i class="fa-solid fa-dollar-sign me-1"></i>{{ "%.0f"|format(ev.budget) }}
+      </div>
+    </div>
+    <span class="ev-badge">{{ ev.theme }}</span>
+    <a href="{{ url_for('history_view', event_id=ev.id) }}"
+       class="btn btn-sm"
+       style="background:var(--hover);border:1px solid var(--border);
+              color:var(--muted);border-radius:6px;font-size:.75rem;
+              padding:.3rem .75rem;font-weight:500;white-space:nowrap;">
+      <i class="fa-solid fa-eye me-1"></i>View
+    </a>
+    <form method="POST" action="{{ url_for('history_delete', event_id=ev.id) }}"
+          onsubmit="return confirm('Delete this event plan?');">
+      <button type="submit" class="btn-del">
+        <i class="fa-solid fa-trash-can me-1"></i>Delete
+      </button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="mt-3" style="font-size:.78rem;color:var(--muted);">
+  {{ events|length }} plan{{ 's' if events|length != 1 else '' }} found
+  {% if q %}for "<strong>{{ q }}</strong>"{% endif %}
+</div>
+
+{% else %}
+<div class="empty-wrap">
+  <div class="empty-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+  {% if q %}
+  <h5>No results for "{{ q }}"</h5>
+  <p>Try a different search term, or <a href="{{ url_for('history') }}">clear the search</a>.</p>
+  {% else %}
+  <h5>No event plans yet</h5>
+  <p>Generate your first event plan and it will appear here.</p>
+  <a href="{{ url_for('planner') }}" class="btn btn-primary btn-sm mt-3 px-4">
+    <i class="fa-solid fa-wand-magic-sparkles me-2"></i>Generate a Plan
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

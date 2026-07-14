@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Event Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- ── Header ── -->
+    <header>
+      <div class="header-badge">Powered by AI</div>
+      <h1>AI Event <span>Planner</span></h1>
+      <p>Fill in the details below and let AI craft your perfect event plan.</p>
+    </header>
+
+    <!-- ── Form card ── -->
+    <div class="glass-card">
+      <h2>Event Details</h2>
+
+      <form method="POST" action="/">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label for="event_type">Event Type</label>
+            <input
+              type="text"
+              id="event_type"
+              name="event_type"
+              placeholder="e.g. Birthday Party, Wedding"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="date">Event Date</label>
+            <input
+              type="date"
+              id="date"
+              name="date"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="location">Location</label>
+            <input
+              type="text"
+              id="location"
+              name="location"
+              placeholder="e.g. New York, NY"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="budget">Budget ($)</label>
+            <input
+              type="number"
+              id="budget"
+              name="budget"
+              placeholder="e.g. 5000"
+              min="0"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="guests">Number of Guests</label>
+            <input
+              type="number"
+              id="guests"
+              name="guests"
+              placeholder="e.g. 50"
+              min="1"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="theme">Theme</label>
+            <input
+              type="text"
+              id="theme"
+              name="theme"
+              placeholder="e.g. Tropical, Black &amp; Gold"
+              required
+            />
+          </div>
+
+        </div><!-- /.form-grid -->
+
+        <button type="submit" class="btn-submit">Generate Event Plan</button>
+      </form>
+    </div><!-- /.glass-card -->
+
+    <!-- ── Plan output (shown only after form submission) ── -->
+    {% if plan %}
+    <div class="plan-card">
+      <h2>Your Generated Event Plan</h2>
+      <pre>{{ plan }}</pre>
+    </div>
+    {% endif %}
+
+    <!-- ── Footer ── -->
+    <footer>
+      &copy; 2025 AI Event Planner &mdash; All rights reserved.
+    </footer>
+
+  </div><!-- /.container -->
+
+</body>
+</html>
