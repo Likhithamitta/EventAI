@@ -64,6 +64,8 @@ def init_db():
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
+        conn.execute("DROP TABLE IF EXISTS events")
+        conn.execute("DROP TABLE IF EXISTS users")
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS users (
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
