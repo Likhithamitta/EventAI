@@ -439,38 +439,65 @@ def dashboard():
 
     if request.method == "POST":
         event_type = request.form.get("event_type", "").strip()
-        date       = request.form.get("date",       "").strip()
-        location   = request.form.get("location",   "").strip()
-        budget     = request.form.get("budget",     "0").strip()
-        guests     = request.form.get("guests",     "0").strip()
-        theme      = request.form.get("theme",      "").strip()
-        form_data  = dict(event_type=event_type, date=date, location=location,
-                          budget=budget, guests=guests, theme=theme)
+        date = request.form.get("date", "").strip()
+        location = request.form.get("location", "").strip()
+        budget = request.form.get("budget", "0").strip()
+        guests = request.form.get("guests", "0").strip()
+        theme = request.form.get("theme", "").strip()
 
-        plan     = None
+        form_data = {
+            "event_type": event_type,
+            "date": date,
+            "location": location,
+            "budget": budget,
+            "guests": guests,
+            "theme": theme,
+        }
+
+        plan = None
         saved_id = None
+
         if all([event_type, date, location, budget, guests, theme]):
-            plan = generate_event_plan(event_type, date, location, budget, guests, theme)
+
+            plan = generate_event_plan(
+                event_type,
+                date,
+                location,
+                budget,
+                guests,
+                theme
+            )
+
             if plan and not plan.startswith("⚠"):
                 saved_id = db_save_event(
                     user_id,
-                    event_type, date, location,
-                    budget, guests, theme, plan
+                    event_type,
+                    date,
+                    location,
+                    budget,
+                    guests,
+                    theme,
+                    plan
                 )
+
         else:
             plan = "⚠ Please fill in all six fields before generating a plan."
 
-        return render_template("planner.html", plan=plan, saved_id=saved_id, form_data=form_data)
+        return render_template(
+            "planner.html",
+            plan=plan,
+            saved_id=saved_id,
+            form_data=form_data,
+        )
 
-    # GET — render dashboard
     stats, recent, upcoming = db_dashboard_stats(user_id)
+
     return render_template(
         "dashboard.html",
         stats=stats,
         recent=recent,
         upcoming=upcoming,
     )
-
 
 @app.route("/planner", methods=["GET", "POST"])
 @login_required
