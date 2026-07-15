@@ -256,7 +256,8 @@ def db_analytics_data(user_id):
         "SELECT * FROM events WHERE user_id = ? ORDER BY created_at DESC LIMIT 5",
         (user_id,)
     ).fetchall()
-
+    totals["event_types"] = len(by_type)
+    totals["avg_guests"] = round(totals["avg_guests"])
     return totals, monthly, by_type, recent
 
 
